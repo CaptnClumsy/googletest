@@ -27,6 +27,15 @@ public class GoogleTest {
 	private static final String DEFAULT_FILE_PATH = "d:\\projects\\ScanBadge\\images\\IMG_5665.PNG";
 	
 	public static void main(String[] args) {
+		// Convert image to greyscale?
+		/** 
+		 BufferedImage image = new BufferedImage(width, height,  
+		    BufferedImage.TYPE_BYTE_GRAY);  
+			Graphics g = image.getGraphics();  
+			g.drawImage(colorImage, 0, 0, null);  
+			g.dispose();  
+		**/
+		
 		final List<AnnotateImageRequest> requests = new ArrayList<>();
 		try {
 			final ByteString imgBytes = ByteString.readFrom(new FileInputStream(DEFAULT_FILE_PATH));
@@ -71,7 +80,11 @@ public class GoogleTest {
 		                    }
 		                    blockText = blockText + paraText;
 		                }
-		                System.err.println("Block: " + blockText);
+		                System.out.println("Block: " + blockText);
+		                List<String> matching = GymMatcher.getMatches(blockText);
+		                for (String match: matching) {
+		                	System.out.println(match);
+		                }
 		                pageText = pageText + blockText;
 		            }
 		        }
@@ -84,7 +97,6 @@ public class GoogleTest {
 			 System.err.println("Unable to analyze image: "+e);
 			 return;
 		}
-		
 	}
 
 }
