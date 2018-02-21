@@ -1,5 +1,6 @@
 package com.clumsy.googletest;
 
+import java.awt.Rectangle;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import com.google.cloud.vision.v1.AnnotateImageRequest;
 import com.google.cloud.vision.v1.AnnotateImageResponse;
 import com.google.cloud.vision.v1.BatchAnnotateImagesResponse;
 import com.google.cloud.vision.v1.Block;
+import com.google.cloud.vision.v1.BoundingPoly;
 import com.google.cloud.vision.v1.Feature;
 import com.google.cloud.vision.v1.Feature.Type;
 import com.google.cloud.vision.v1.Image;
@@ -17,12 +19,13 @@ import com.google.cloud.vision.v1.Page;
 import com.google.cloud.vision.v1.Paragraph;
 import com.google.cloud.vision.v1.Symbol;
 import com.google.cloud.vision.v1.TextAnnotation;
+import com.google.cloud.vision.v1.Vertex;
 import com.google.cloud.vision.v1.Word;
 import com.google.protobuf.ByteString;
 
 public class ImageRecognitionUtils {
 
-	public static List<String> getGyms(final List<String> inputFiles) throws ImageProcessingException { 
+	public static List<ImageRecognitionResult> getGyms(final List<String> inputFiles) throws ImageProcessingException { 
 		// Setup the requests to send to google vision
 		final List<AnnotateImageRequest> requests = new ArrayList<>();
 		try {
@@ -45,7 +48,7 @@ public class ImageRecognitionUtils {
 		    final List<AnnotateImageResponse> responses = response.getResponsesList();
 		    client.close();
 		    // Process the response for each image
-		    final List<String> matchingGyms = new ArrayList<String>();
+		    final List<ImageRecognitionResult> matchingGyms = new ArrayList<ImageRecognitionResult>();
 		    for (AnnotateImageResponse res : responses) {
 		        if (res.hasError()) {
 			        System.err.println("Error: "+res.getError().getMessage());
@@ -73,10 +76,17 @@ public class ImageRecognitionUtils {
 		                    blockText = blockText + paraText;
 		                }
 		                //System.out.println("Block: " + blockText);
-		                final String matching = GymMatcher.getBestMatch(blockText);
+		                final List<String> matching = GymMatcher.getBestMatches(blockText);
 		                //System.out.println("Found: "+matching);
 		                if (matching!=null) {
-		                	matchingGyms.add(matching);
+		                	// Create a rectangle representing the text block bounds
+		                	BoundingPoly box = block.getBoundingBox();
+		                	List<Vertex> vertices = box.getVerticesList();
+		                	Rectangle bounds = new Rectangle(vertices.get(0).getX(), vertices.get(0).getY(),
+		                			vertices.get(1).getX()-vertices.get(0).getX(),
+		                			vertices.get(2).getY()-vertices.get(1).getY());
+		                	// Add this gym to the list
+		                	matchingGyms.add(new ImageRecognitionResult(matching, bounds));
 		                }
 		            }
 		        }
