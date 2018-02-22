@@ -7,6 +7,7 @@ import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -36,6 +37,34 @@ public class ImageUtils {
 	
 	public static void convertForOCR(final String inFile, final String outFile) throws ImageProcessingException {
 		BufferedImage image = convertToGreyScale(inFile);
+		try {
+		    File outputfile = new File(outFile);
+		    ImageIO.write(image, "png", outputfile);
+		} catch (IOException ex) {
+			throw new ImageProcessingException("Failed to write image file: "+ex.getMessage());
+	    }
+	}
+	
+	public static void drawBounds(final String inFile, final String outFile, List<ImageRecognitionResult> res) throws ImageProcessingException {
+	    // Load the original image
+		BufferedImage image = null;
+		try {
+			image = ImageIO.read(new File(inFile));
+		} catch (IOException e) {
+			throw new ImageProcessingException("Failed to read image file: "+e.getMessage());
+		}
+		Graphics2D g = image.createGraphics();  
+		g.drawImage(image, 0, 0, null);
+		g.setStroke(new BasicStroke(2f));
+        g.setColor(Color.BLACK);
+		// draw the bounds
+		for (ImageRecognitionResult r : res) {
+			if (r.getBounds()==null) {
+				continue;
+			}
+			g.drawRect(r.getBounds().x, r.getBounds().y, r.getBounds().width, r.getBounds().height);
+		}
+		g.dispose();
 		try {
 		    File outputfile = new File(outFile);
 		    ImageIO.write(image, "png", outputfile);

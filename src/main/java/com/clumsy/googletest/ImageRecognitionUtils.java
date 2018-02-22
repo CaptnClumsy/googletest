@@ -25,9 +25,9 @@ import com.google.protobuf.ByteString;
 
 public class ImageRecognitionUtils {
 
-	public static List<ImageRecognitionResult> getGyms(final List<String> inputFiles) throws ImageProcessingException { 
+	public static List<ImageRecognitionResult> getGyms(final List<String> inputFiles) throws ImageProcessingException, InvalidBadgeListException { 
 		// Setup the requests to send to google vision
-		final List<AnnotateImageRequest> requests = new ArrayList<>();
+		final List<AnnotateImageRequest> requests = new ArrayList<AnnotateImageRequest>();
 		try {
 			for (String inFile : inputFiles) {
 				final ByteString imgBytes = ByteString.readFrom(new FileInputStream(inFile));
@@ -55,9 +55,9 @@ public class ImageRecognitionUtils {
 			        continue;
 			    }
 		        // Walk the elements of this images page and find the blocks of text
+		        boolean isImageValid = false;
 		        TextAnnotation annotation = res.getFullTextAnnotation();
 		        for (Page page: annotation.getPagesList()) {
-		        	LogFile.log(page.toString());
 		            for (Block block : page.getBlocksList()) {
 		                String blockText = "";
 		                for (Paragraph para : block.getParagraphsList()) {
@@ -75,10 +75,11 @@ public class ImageRecognitionUtils {
 		                    }
 		                    blockText = blockText + paraText;
 		                }
-		                //System.out.println("Block: " + blockText);
+		                if (blockText.equalsIgnoreCase("GYM BADGES")) {
+		                	isImageValid = true;
+		                }
 		                final List<String> matching = GymMatcher.getBestMatches(blockText);
-		                //System.out.println("Found: "+matching);
-		                if (matching!=null) {
+		                if (matching!=null && matching.size()!=0) {
 		                	// Create a rectangle representing the text block bounds
 		                	BoundingPoly box = block.getBoundingBox();
 		                	List<Vertex> vertices = box.getVerticesList();
@@ -90,7 +91,9 @@ public class ImageRecognitionUtils {
 		                }
 		            }
 		        }
-		        LogFile.close();
+		        if (!isImageValid && matchingGyms.isEmpty()) {
+		        	throw new InvalidBadgeListException();
+		        }
 		    } 
 		    return matchingGyms;
 		 } catch (Exception e) {
